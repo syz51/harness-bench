@@ -1,0 +1,3 @@
+# Copy to lab.toml (gitignored) and list extra paths, relative to HOME, that your shell
+# startup or hooks read. `harness-bench check` reports files your shell could not find.
+copy = [".config/shell"]

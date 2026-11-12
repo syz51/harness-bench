@@ -1,0 +1,22 @@
+[project]
+name = "harness-bench"
+version = "0.1.0"
+description = "Profile coding-agent hosts (T3 Code, herdr) on real delegated work, with the same Claude Code setup in every arm"
+readme = "README.md"
+authors = [
+    { name = "SUN Yizhe", email = "54097388+syz51@users.noreply.github.com" }
+]
+requires-python = ">=3.13"
+dependencies = []
+
+[project.scripts]
+harness-bench = "harness_bench.cli:main"
+
+[build-system]
+requires = ["uv_build>=0.13.5,<0.14.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.2.0",
+]
