@@ -81,7 +81,10 @@ def cmd_check(args: argparse.Namespace) -> int:
         for line in _shell_errors(lab):
             failures.append(f"shell startup: {line}")
         if args.login:
-            print(f"login: {_login_model(lab)}")
+            try:
+                print(f"login: {_login_model(lab)}")
+            except (RuntimeError, ValueError, subprocess.TimeoutExpired) as e:
+                failures.append(f"login: {e}")
     finally:
         shutil.rmtree(root)
     after = manifest.snapshot(home, layout)
@@ -115,12 +118,10 @@ def main(argv: list[str] | None = None) -> int:
     s.set_defaults(fn=cmd_diff)
 
     s = sub.add_parser("check", help="build a throwaway lab and verify isolation")
-    s.add_argument("--login", action="store_true", help="also send one Haiku prompt as the explorer agent")
+    s.add_argument("--login", action="store_true", help="also send one short prompt as the explorer agent, on the model its definition sets")
     s.set_defaults(fn=cmd_check)
 
     args = p.parse_args(argv)
-    if getattr(args, "cmd", None) and args.cmd[:1] == ["--"]:
-        args.cmd = args.cmd[1:]
     return args.fn(args)
 
 

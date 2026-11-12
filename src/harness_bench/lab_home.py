@@ -117,14 +117,28 @@ def claude_config_entries(real_claude: Path) -> list[str]:
     )
 
 
-def _copy(src: Path, dst: Path) -> None:
-    if not src.exists() and not src.is_symlink():
+def _copy(src: Path, dst: Path, root: Path | None = None) -> None:
+    """Copy a tree. A relative link that stays inside `root` stays a link; any other link is
+    replaced by a copy of what it points to, so no write in the lab can reach the real files."""
+    if not src.exists():
         return
-    dst.parent.mkdir(parents=True, exist_ok=True)
-    if src.is_dir() and not src.is_symlink():
-        shutil.copytree(src, dst, symlinks=True)
+    root = root or src.resolve()
+    if src.is_symlink():
+        link = src.readlink()
+        # Judge the link by where it points itself; a link it points to is copied on its own turn.
+        direct = Path(os.path.normpath(src.parent.resolve() / link))
+        if not link.is_absolute() and direct.is_relative_to(root):
+            dst.parent.mkdir(parents=True, exist_ok=True)
+            dst.symlink_to(link)
+            return
+        src = root = src.resolve()
+    if src.is_dir():
+        dst.mkdir(parents=True, exist_ok=True)
+        for entry in src.iterdir():
+            _copy(entry, dst / entry.name, root)
     else:
-        shutil.copy2(src, dst, follow_symlinks=False)
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(src, dst)
 
 
 def _link_each(src: Path, dst: Path) -> None:
@@ -142,7 +156,7 @@ def build(lab: Path, real_home: Path, layout: Layout = Layout()) -> LabHome:
 
     real_claude, claude_rel = claude_dir(real_home)
     for name in claude_config_entries(real_claude):
-        _copy(real_claude / name, lab / claude_rel / name)
+        _copy(real_claude / name, lab / claude_rel / name, real_claude)
     if claude_rel != ".claude":
         (lab / ".claude").symlink_to(claude_rel)
 
